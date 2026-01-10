@@ -105,7 +105,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
         if (userData == null) {
           await _auth.signOut();
-          throw Exception("Профіль користувача не знайдено. Можливо, його було видалено.");
+          throw Exception("Profile not found. Maybe it has been deleted.");
         }
 
         final String role = userData['role'];
@@ -127,14 +127,14 @@ class _LoginScreenState extends State<LoginScreen> {
             Navigator.pushReplacementNamed(context, '/admin_dashboard');
             break;
           default:
-            throw Exception("Невідома роль користувача: $role");
+            throw Exception("User role not identified: $role");
         }
       }
     } catch (e) {
       log("Login failed: $e");
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Помилка входу: ${e.toString()}')),
+          SnackBar(content: Text('Error occurred while logging in: ${e.toString()}')),
         );
       }
     } finally {
