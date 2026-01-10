@@ -4,11 +4,9 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-// 🚀 1. ДОДАНО ІМПОРТИ ДЛЯ ЛОКАЛІЗАЦІЇ
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
-// Імпорти ваших екранів
 import 'screens/auth/login_screen.dart';
 import 'screens/patient/patient_dashboard_screen.dart';
 import 'screens/doctor/doctor_dashboard_screen.dart';
@@ -18,12 +16,7 @@ import 'screens/ai_assistant/ai_assistant_screen.dart';
 import 'screens/auth/registration_screen.dart';
 import 'screens/auth/pending_verification_screen.dart';
 import 'screens/admin/admin_dashboard_screen.dart';
-
-// 🚀 2. ДОДАНО ІМПОРТ НОВОГО ЕКРАНУ
-// (Перевірте, чи правильний ваш шлях)
 import 'screens/patient/book_appointment_screen.dart';
-
-// import 'firebase_options.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -31,8 +24,6 @@ Future<void> main() async {
 
   await dotenv.load(fileName: ".env");
 
-  // 🚀 3. ДОДАНО ІНІЦІАЛІЗАЦІЮ ЛОКАЛІ (ДЛЯ АНГЛІЙСЬКОЇ)
-  // Це виправляє помилку LocaleDataException
   await initializeDateFormatting('en_US', null);
 
   runApp(const HealthApp());
@@ -41,7 +32,6 @@ Future<void> main() async {
 class HealthApp extends StatelessWidget {
   const HealthApp({super.key});
 
-  // Ваші кольори (без змін)
   static const Color primaryTeal = Color(0xFF008080);
   static const Color accentOrange = Color(0xFFFF9800);
   static const Color lightBackground = Color(0xFFF0F2F5);
@@ -54,7 +44,6 @@ class HealthApp extends StatelessWidget {
       title: 'Health App',
       debugShowCheckedModeBanner: false,
 
-      // Ваша тема (без змін)
       theme: ThemeData(
         brightness: Brightness.light,
         primaryColor: primaryTeal,
@@ -122,18 +111,16 @@ class HealthApp extends StatelessWidget {
         ),
       ),
 
-      // 🚀 4. ДОДАНО НАЛАШТУВАННЯ ЛОКАЛІЗАЦІЇ
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: const [
-        Locale('en', 'US'), // Англійська
-        Locale('uk', 'UA'), // Українська (можна залишити)
+        Locale('en', 'US'), // English
       ],
-      locale: const Locale('en', 'US'), // Встановлюємо англійську
-      // --- Кінець налаштувань локалізації ---
+      locale: const Locale('en', 'US'),
+
 
       initialRoute: '/',
       routes: {
@@ -143,11 +130,8 @@ class HealthApp extends StatelessWidget {
         '/doctor_dashboard': (context) => const DoctorDashboardScreen(),
         '/health_profile': (context) => const HealthProfileScreen(),
         '/appointments': (context) => const AppointmentListScreen(),
-        // '/ai_assistant': (context) => const AIAssistantScreen(),
         '/pending_verification': (context) => const PendingVerificationScreen(),
         '/admin_dashboard': (context) => const AdminDashboardScreen(),
-
-        // 🚀 5. ДОДАНО НОВИЙ МАРШРУТ
         '/book_appointment': (context) => const BookAppointmentScreen(),
       },
     );
