@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:health_app/services/api_service.dart';
 import 'package:health_app/constants/constants.dart';
-// 👇 1. Додано імпорт екрану зміни пароля
 import 'package:health_app/screens/auth/change_password_screen.dart';
 
 // 🚀 ОНОВЛЕНИЙ СПИСОК (нова папка)
@@ -21,7 +20,6 @@ const List<String> kDoctorAvatarPaths = [
   'assets/doctor_avatars/doctor_12.png',
 ];
 
-// Заглушка
 const String kDefaultPlaceholderPath = 'assets/doctor_avatars/doctor_1.png';
 
 class DoctorProfileScreen extends StatefulWidget {
@@ -160,9 +158,9 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Log Out'),
-        content: const Text('Are you sure?'),
+        content: const Text('Are you sure you want to log out?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel', style: TextStyle(color: Colors.grey))),
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
@@ -194,12 +192,7 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Doctor Profile'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout, color: Colors.redAccent),
-            onPressed: _confirmSignOut,
-          ),
-        ],
+        // 👇 1. Видалено actions з іконкою виходу
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -280,7 +273,6 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
 
             const SizedBox(height: 30),
 
-            // 👇 2. Додано секцію Security
             Text(
               'SECURITY',
               style: TextStyle(
@@ -292,11 +284,10 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
             ),
             const SizedBox(height: 10),
 
-            // 👇 3. Кнопка Change Password (стилізована під інпути)
             Container(
               decoration: BoxDecoration(
                 color: Colors.grey[50],
-                border: Border.all(color: Colors.grey.shade500), // Колір рамки як у TextField
+                border: Border.all(color: Colors.grey.shade500),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: ListTile(
@@ -317,6 +308,7 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
 
             const SizedBox(height: 40),
 
+            // Кнопка збереження
             SizedBox(
               width: double.infinity,
               height: 50,
@@ -330,6 +322,33 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
                 child: const Text('Save Changes', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               ),
             ),
+
+            const SizedBox(height: 20),
+
+            // 👇 2. Додано кнопку виходу вниз (як у пацієнта)
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: OutlinedButton(
+                onPressed: _confirmSignOut,
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.red,
+                  side: BorderSide(color: Colors.red.shade200),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: const [
+                    Icon(Icons.logout),
+                    SizedBox(width: 8),
+                    Text("Log Out", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
           ],
         ),
       ),

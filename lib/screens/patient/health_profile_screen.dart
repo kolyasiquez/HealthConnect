@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:url_launcher/url_launcher.dart'; // 👇 Додано для пошти
+import 'package:url_launcher/url_launcher.dart';
 import 'package:health_app/services/api_service.dart';
 import 'package:health_app/screens/common/appointments_list_screen.dart';
 import 'package:health_app/screens/auth/change_password_screen.dart';
-// 👇 Імпорт нового екрану умов
 import 'package:health_app/screens/common/terms_screen.dart';
 
 const String kDefaultPlaceholderPath = 'assets/avatars/placeholder.png';
@@ -57,11 +56,10 @@ class _HealthProfileScreenState extends State<HealthProfileScreen> {
     }
   }
 
-  // --- ЛОГІКА EMAIL ПІДТРИМКИ ---
   Future<void> _contactSupport() async {
     final Uri emailLaunchUri = Uri(
       scheme: 'mailto',
-      path: 'support@healthapp.com', // Замініть на реальну пошту якщо треба
+      path: 'support@healthapp.com',
       query: _encodeQueryParameters(<String, String>{
         'subject': 'Support Request: ${_userName ?? "User"}',
         'body': 'Describe your issue here:\n\n',
@@ -79,14 +77,12 @@ class _HealthProfileScreenState extends State<HealthProfileScreen> {
     }
   }
 
-  // Допоміжна функція для кодування параметрів URL
   String? _encodeQueryParameters(Map<String, String> params) {
     return params.entries
         .map((e) => '${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value)}')
         .join('&');
   }
 
-  // --- ЛОГІКА ЗМІНИ АВАТАРКИ ---
   void _openAvatarAssetSelectionDialog() {
     showModalBottomSheet(
       context: context,
@@ -162,7 +158,6 @@ class _HealthProfileScreenState extends State<HealthProfileScreen> {
     }
   }
 
-  // --- ЛОГІКА ВИХОДУ ---
   void _confirmSignOut() {
     showDialog(
       context: context,
@@ -211,15 +206,16 @@ class _HealthProfileScreenState extends State<HealthProfileScreen> {
     final primaryTeal = theme.colorScheme.primary;
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: Colors.grey[50], // Це фон загального екрану
       appBar: AppBar(
         title: const Text('My Profile', style: TextStyle(fontWeight: FontWeight.bold)),
         centerTitle: true,
-        backgroundColor: Colors.white,
+        // AppBar робимо прозорим або таким же сірим, щоб не було смуги
+        backgroundColor: Colors.grey[50],
         foregroundColor: primaryTeal,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new),
+          icon: Icon(Icons.arrow_back_ios_new, color: primaryTeal),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -228,12 +224,11 @@ class _HealthProfileScreenState extends State<HealthProfileScreen> {
           : SingleChildScrollView(
         child: Column(
           children: [
-            const SizedBox(height: 20),
+            const SizedBox(height: 10), // Трохи менший відступ, бо AppBar тепер сірий
             _buildProfileHeader(theme),
 
             const SizedBox(height: 30),
 
-            // СЕКЦІЯ 1: МЕДИЧНІ ДАНІ
             _buildSectionTitle('Medical Records'),
 
             _buildMenuTile(
@@ -263,7 +258,6 @@ class _HealthProfileScreenState extends State<HealthProfileScreen> {
 
             const SizedBox(height: 20),
 
-            // СЕКЦІЯ 2: БЕЗПЕКА
             _buildSectionTitle('Security'),
 
             _buildMenuTile(
@@ -280,20 +274,17 @@ class _HealthProfileScreenState extends State<HealthProfileScreen> {
               },
             ),
 
-            // 👇 Help & Support додаємо сюди або в Application, логічно тут або нижче
             _buildMenuTile(
               icon: Icons.help_outline,
               title: 'Help & Support',
               subtitle: 'Contact us for assistance',
-              onTap: _contactSupport, // Виклик функції відправки листа
+              onTap: _contactSupport,
             ),
 
             const SizedBox(height: 20),
 
-            // СЕКЦІЯ 3: ПРО ПРОГРАМУ
             _buildSectionTitle('Application'),
 
-            // 👇 Terms & Conditions
             _buildMenuTile(
               icon: Icons.description_outlined,
               title: 'Terms & Privacy Policy',
@@ -322,7 +313,6 @@ class _HealthProfileScreenState extends State<HealthProfileScreen> {
 
             const SizedBox(height: 40),
 
-            // КНОПКА ВИХОДУ
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: OutlinedButton(
@@ -352,17 +342,28 @@ class _HealthProfileScreenState extends State<HealthProfileScreen> {
     );
   }
 
-  // --- ВІДЖЕТИ UI ---
-
   Widget _buildProfileHeader(ThemeData theme) {
+    final primaryColor = theme.colorScheme.primary;
+
     return Container(
-      color: Colors.white,
+      // 👇 ЗМІНЕНО: Тепер фон сірий (Colors.grey[50]), як у всього екрана
+      color: Colors.grey[50],
       padding: const EdgeInsets.symmetric(vertical: 20),
       child: Column(
         children: [
           Stack(
             children: [
-              _buildAvatarWidget(),
+              CircleAvatar(
+                radius: 60,
+                // Фон під аватаркою трохи темніший за загальний фон, щоб виділялась
+                backgroundColor: Colors.grey.shade200,
+                backgroundImage: _avatarUrl != null && _avatarUrl!.startsWith('assets/')
+                    ? AssetImage(_avatarUrl!)
+                    : null,
+                child: _avatarUrl == null || !_avatarUrl!.startsWith('assets/')
+                    ? Icon(Icons.person, size: 60, color: primaryColor)
+                    : null,
+              ),
               Positioned(
                 bottom: 0,
                 right: 0,
@@ -371,11 +372,11 @@ class _HealthProfileScreenState extends State<HealthProfileScreen> {
                   child: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.secondary,
+                      color: Colors.white,
                       shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 2),
+                      border: Border.all(color: primaryColor, width: 2),
                     ),
-                    child: const Icon(Icons.edit, color: Colors.white, size: 20),
+                    child: Icon(Icons.edit, color: primaryColor, size: 20),
                   ),
                 ),
               ),
@@ -393,20 +394,6 @@ class _HealthProfileScreenState extends State<HealthProfileScreen> {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildAvatarWidget() {
-    final primaryTeal = Theme.of(context).colorScheme.primary;
-    return CircleAvatar(
-      radius: 60,
-      backgroundColor: Colors.grey.shade100,
-      backgroundImage: _avatarUrl != null && _avatarUrl!.startsWith('assets/')
-          ? AssetImage(_avatarUrl!)
-          : null,
-      child: _avatarUrl == null || !_avatarUrl!.startsWith('assets/')
-          ? Icon(Icons.person, size: 60, color: primaryTeal)
-          : null,
     );
   }
 
