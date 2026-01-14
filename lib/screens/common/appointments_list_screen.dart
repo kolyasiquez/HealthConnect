@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:fl_chart/fl_chart.dart'; // Бібліотека графіків
-
-// Імпорт твого файлу з деталями
+import 'package:fl_chart/fl_chart.dart';
 import 'package:health_app/widgets/appointment_details_sheet.dart';
 
 class AppointmentsListScreen extends StatefulWidget {
-  final bool isDoctor;
+  final bool isDoctor; // 👈 Цей прапорець визначає режим роботи екрану
 
   const AppointmentsListScreen({super.key, required this.isDoctor});
 
@@ -19,21 +17,18 @@ class _AppointmentsListScreenState extends State<AppointmentsListScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // Змінні для списку (пагінація)
   List<DocumentSnapshot> _appointments = [];
   bool _isListLoading = false;
   bool _hasMore = true;
   final int _documentLimit = 10;
   DocumentSnapshot? _lastDocument;
 
-  // --- ЗМІННІ ДЛЯ СТАТИСТИКИ ---
   bool _isStatsLoading = true;
   int _statsConfirmed = 0;
   int _statsCancelled = 0;
   int _statsPending = 0;
-  int _statsCompleted = 0; // 👈 ДОДАЛИ НОВУ ЗМІННУ
+  int _statsCompleted = 0;
 
-  // Оновлюємо загальну суму
   int get _totalVisits => _statsConfirmed + _statsCancelled + _statsPending + _statsCompleted;
 
   @override
@@ -54,25 +49,31 @@ class _AppointmentsListScreenState extends State<AppointmentsListScreen> {
     await _getAppointments();
   }
 
-  // --- ОТРИМАННЯ СТАТИСТИКИ ---
+  // ---------------------------------------------------------------------------
+  // 🔍 ЛОГІКА РОЗДІЛЕННЯ РОЛЕЙ (Backend)
+  // ---------------------------------------------------------------------------
+
   Future<void> _fetchStats() async {
     final userId = _auth.currentUser!.uid;
+
+    // 👇 ГОЛОВНА ЛОГІКА:
+    // Якщо я лікар -> шукаємо записи, де 'doctorId' == моє ID (бачу всіх своїх пацієнтів)
+    // Якщо я пацієнт -> шукаємо записи, де 'patientId' == моє ID (бачу всіх своїх лікарів)
     final String searchField = widget.isDoctor ? 'doctorId' : 'patientId';
 
     final baseQuery = _firestore.collection('appointments').where(searchField, isEqualTo: userId);
 
     try {
-      // Робимо 4 запити для кожного статусу
       final pendingQuery = baseQuery.where('status', isEqualTo: 'pending').count();
       final confirmedQuery = baseQuery.where('status', isEqualTo: 'confirmed').count();
       final cancelledQuery = baseQuery.where('status', isEqualTo: 'cancelled').count();
-      final completedQuery = baseQuery.where('status', isEqualTo: 'completed').count(); // 👈 4-й запит
+      final completedQuery = baseQuery.where('status', isEqualTo: 'completed').count();
 
       final results = await Future.wait([
         pendingQuery.get(),
         confirmedQuery.get(),
         cancelledQuery.get(),
-        completedQuery.get(), // 👈 Чекаємо 4-й результат
+        completedQuery.get(),
       ]);
 
       if (mounted) {
@@ -80,7 +81,7 @@ class _AppointmentsListScreenState extends State<AppointmentsListScreen> {
           _statsPending = results[0].count ?? 0;
           _statsConfirmed = results[1].count ?? 0;
           _statsCancelled = results[2].count ?? 0;
-          _statsCompleted = results[3].count ?? 0; // 👈 Записуємо результат
+          _statsCompleted = results[3].count ?? 0;
           _isStatsLoading = false;
         });
       }
@@ -90,23 +91,21 @@ class _AppointmentsListScreenState extends State<AppointmentsListScreen> {
     }
   }
 
-  // --- ОТРИМАННЯ СПИСКУ ЗАПИСІВ ---
   Future<void> _getAppointments() async {
     if (_isListLoading) return;
 
-    setState(() {
-      _isListLoading = true;
-    });
+    setState(() => _isListLoading = true);
 
     final userId = _auth.currentUser!.uid;
 
     try {
+      // 👇 ТА Ж САМА ЛОГІКА ДЛЯ СПИСКУ:
       final String searchField = widget.isDoctor ? 'doctorId' : 'patientId';
 
       Query query = _firestore
           .collection('appointments')
           .where(searchField, isEqualTo: userId)
-          .orderBy('date', descending: true)
+          .orderBy('date', descending: true) // Сортуємо: нові зверху
           .limit(_documentLimit);
 
       if (_lastDocument != null) {
@@ -127,25 +126,24 @@ class _AppointmentsListScreenState extends State<AppointmentsListScreen> {
       debugPrint("Error loading appointments: $e");
     }
 
-    if (mounted) {
-      setState(() {
-        _isListLoading = false;
-      });
-    }
+    if (mounted) setState(() => _isListLoading = false);
   }
 
-  // --- ВІДЖЕТ ГРАФІКА ---
+  // ---------------------------------------------------------------------------
+  // 🎨 UI ВІДЖЕТИ
+  // ---------------------------------------------------------------------------
+
   Widget _buildChartSection() {
     if (_isStatsLoading) {
-      return const SizedBox(
-        height: 200,
-        child: Center(child: CircularProgressIndicator()),
-      );
+      return const SizedBox(height: 200, child: Center(child: CircularProgressIndicator()));
     }
 
-    if (_totalVisits == 0) {
-      return const SizedBox.shrink();
-    }
+    if (_totalVisits == 0) return const SizedBox.shrink();
+
+    // Заголовок графіка залежить від ролі
+    final String chartTitle = widget.isDoctor
+        ? "Workload Statistics"
+        : "My Medical History Stats";
 
     return Container(
       margin: const EdgeInsets.all(16),
@@ -160,7 +158,7 @@ class _AppointmentsListScreenState extends State<AppointmentsListScreen> {
       child: Column(
         children: [
           Text(
-            widget.isDoctor ? "Patients Statistics" : "My Schedule Statistics",
+            chartTitle,
             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 20),
@@ -192,14 +190,13 @@ class _AppointmentsListScreenState extends State<AppointmentsListScreen> {
             ),
           ),
           const SizedBox(height: 20),
-          // Оновлена легенда (2 ряди, бо 4 елементи не влізуть в один)
           Wrap(
             spacing: 20,
             runSpacing: 10,
             alignment: WrapAlignment.center,
             children: [
               _buildLegendItem(Colors.green, "Confirmed", _statsConfirmed),
-              _buildLegendItem(Colors.blue, "Completed", _statsCompleted), // 👈 Додали Completed
+              _buildLegendItem(Colors.blue, "Completed", _statsCompleted),
               _buildLegendItem(Colors.orange, "Pending", _statsPending),
               _buildLegendItem(Colors.red, "Cancelled", _statsCancelled),
             ],
@@ -213,47 +210,18 @@ class _AppointmentsListScreenState extends State<AppointmentsListScreen> {
     if (_totalVisits == 0) {
       return [PieChartSectionData(color: Colors.grey.shade200, value: 1, title: '', radius: 25)];
     }
-
     final double total = _totalVisits.toDouble();
-
-    String getPercentage(int value) {
-      if (value == 0) return '';
-      return '${((value / total) * 100).toStringAsFixed(0)}%';
-    }
+    String getPercentage(int value) => value == 0 ? '' : '${((value / total) * 100).toStringAsFixed(0)}%';
 
     return [
-      if (_statsCompleted > 0) // 👈 Додали синій сектор
-        PieChartSectionData(
-          color: Colors.blue,
-          value: _statsCompleted.toDouble(),
-          title: getPercentage(_statsCompleted),
-          radius: 30, // Трохи виділяємо завершені
-          titleStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
-        ),
+      if (_statsCompleted > 0)
+        PieChartSectionData(color: Colors.blue, value: _statsCompleted.toDouble(), title: getPercentage(_statsCompleted), radius: 30, titleStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white)),
       if (_statsConfirmed > 0)
-        PieChartSectionData(
-          color: Colors.green,
-          value: _statsConfirmed.toDouble(),
-          title: getPercentage(_statsConfirmed),
-          radius: 28,
-          titleStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
-        ),
+        PieChartSectionData(color: Colors.green, value: _statsConfirmed.toDouble(), title: getPercentage(_statsConfirmed), radius: 28, titleStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white)),
       if (_statsPending > 0)
-        PieChartSectionData(
-          color: Colors.orange,
-          value: _statsPending.toDouble(),
-          title: getPercentage(_statsPending),
-          radius: 25,
-          titleStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
-        ),
+        PieChartSectionData(color: Colors.orange, value: _statsPending.toDouble(), title: getPercentage(_statsPending), radius: 25, titleStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white)),
       if (_statsCancelled > 0)
-        PieChartSectionData(
-          color: Colors.red,
-          value: _statsCancelled.toDouble(),
-          title: getPercentage(_statsCancelled),
-          radius: 25,
-          titleStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
-        ),
+        PieChartSectionData(color: Colors.red, value: _statsCancelled.toDouble(), title: getPercentage(_statsCancelled), radius: 25, titleStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white)),
     ];
   }
 
@@ -275,7 +243,6 @@ class _AppointmentsListScreenState extends State<AppointmentsListScreen> {
     );
   }
 
-  // --- ВІДЖЕТ ОДНОГО ЗАПИСУ ---
   Widget _buildAppointmentItem(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
 
@@ -283,11 +250,15 @@ class _AppointmentsListScreenState extends State<AppointmentsListScreen> {
     final time = data['slot'] ?? '--:--';
     final status = data['status'] ?? 'pending';
 
+    // 👇 UI ЛОГІКА:
+    // Якщо я лікар -> мені важливо бачити ім'я ПАЦІЄНТА
+    // Якщо я пацієнт -> мені важливо бачити ім'я ЛІКАРЯ
     final String titleName = widget.isDoctor
-        ? (data['patientName'] ?? 'Patient')
-        : (data['doctorName'] ?? 'Doctor');
+        ? (data['patientName'] ?? 'Unknown Patient')
+        : (data['doctorName'] ?? 'Unknown Doctor');
 
-    // Налаштування кольорів для всіх статусів
+    final String subTitleLabel = widget.isDoctor ? "Patient" : "Doctor";
+
     Color statusColor = Colors.orange;
     IconData statusIcon = Icons.access_time;
 
@@ -297,7 +268,7 @@ class _AppointmentsListScreenState extends State<AppointmentsListScreen> {
     } else if (status == 'cancelled') {
       statusColor = Colors.red;
       statusIcon = Icons.cancel_outlined;
-    } else if (status == 'completed') { // 👈 Додали обробку completed в списку
+    } else if (status == 'completed') {
       statusColor = Colors.blue;
       statusIcon = Icons.task_alt;
     }
@@ -367,10 +338,19 @@ class _AppointmentsListScreenState extends State<AppointmentsListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Адаптивний заголовок екрану
+    final String appBarTitle = widget.isDoctor
+        ? 'My Patients Schedule'
+        : 'My Visits History';
+
+    final String emptyMessage = widget.isDoctor
+        ? "No scheduled appointments found"
+        : "You have no visit history yet";
+
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        title: Text(widget.isDoctor ? 'My Patients Schedule' : 'My Visits History'),
+        title: Text(appBarTitle),
         centerTitle: true,
         backgroundColor: Colors.white,
         elevation: 0,
@@ -387,7 +367,7 @@ class _AppointmentsListScreenState extends State<AppointmentsListScreen> {
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
                 child: Text(
-                  "Detailed List",
+                  widget.isDoctor ? "Appointments List" : "History List",
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.grey.shade800),
                 ),
               ),
@@ -401,7 +381,7 @@ class _AppointmentsListScreenState extends State<AppointmentsListScreen> {
                     Icon(Icons.calendar_month_outlined, size: 60, color: Colors.grey[300]),
                     const SizedBox(height: 10),
                     Text(
-                      widget.isDoctor ? "No appointments found" : "No visit history",
+                      emptyMessage,
                       style: const TextStyle(color: Colors.grey),
                     ),
                   ],

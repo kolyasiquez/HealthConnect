@@ -3,8 +3,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:health_app/services/api_service.dart';
 import 'package:health_app/constants/constants.dart';
 import 'package:health_app/screens/auth/change_password_screen.dart';
+// 👇 1. Імпорт екрану списку візитів
+import 'package:health_app/screens/common/appointments_list_screen.dart';
 
-// 🚀 ОНОВЛЕНИЙ СПИСОК (нова папка)
 const List<String> kDoctorAvatarPaths = [
   'assets/doctor_avatars/doctor_1.png',
   'assets/doctor_avatars/doctor_2.png',
@@ -192,7 +193,6 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Doctor Profile'),
-        // 👇 1. Видалено actions з іконкою виходу
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -273,42 +273,44 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
 
             const SizedBox(height: 30),
 
-            Text(
-              'SECURITY',
-              style: TextStyle(
-                color: Colors.grey[600],
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1.2,
-              ),
+            // 👇 2. Нова секція WORK & HISTORY
+            _buildSectionTitle('WORK & HISTORY'),
+            _buildMenuTile(
+              icon: Icons.calendar_month_outlined,
+              title: 'My Schedule & History',
+              subtitle: 'View all appointments statistics',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    // Передаємо isDoctor: true, щоб бачити розклад лікаря
+                    builder: (context) => const AppointmentsListScreen(isDoctor: true),
+                  ),
+                );
+              },
             ),
-            const SizedBox(height: 10),
 
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.grey[50],
-                border: Border.all(color: Colors.grey.shade500),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: ListTile(
-                leading: const Icon(Icons.lock_outline, color: Colors.black54),
-                title: const Text('Change Password', style: TextStyle(fontSize: 16)),
-                subtitle: const Text('Update your login credentials', style: TextStyle(fontSize: 12, color: Colors.grey)),
-                trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const ChangePasswordScreen(),
-                    ),
-                  );
-                },
-              ),
+            const SizedBox(height: 20),
+
+            // Секція SECURITY
+            _buildSectionTitle('SECURITY'),
+            // Оновлений дизайн кнопки зміни пароля
+            _buildMenuTile(
+              icon: Icons.lock_outline,
+              title: 'Change Password',
+              subtitle: 'Update your login credentials',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ChangePasswordScreen(),
+                  ),
+                );
+              },
             ),
 
             const SizedBox(height: 40),
 
-            // Кнопка збереження
             SizedBox(
               width: double.infinity,
               height: 50,
@@ -325,7 +327,6 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
 
             const SizedBox(height: 20),
 
-            // 👇 2. Додано кнопку виходу вниз (як у пацієнта)
             SizedBox(
               width: double.infinity,
               height: 50,
@@ -371,6 +372,61 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
         filled: true,
         fillColor: Colors.grey[50],
         alignLabelWithHint: maxLines > 1,
+      ),
+    );
+  }
+
+  // 👇 3. Додано метод для заголовків секцій
+  Widget _buildSectionTitle(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4, bottom: 8),
+      child: Text(
+        title,
+        style: TextStyle(
+          color: Colors.grey[600],
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+          letterSpacing: 1.2,
+        ),
+      ),
+    );
+  }
+
+  // 👇 4. Додано метод для красивих плиток меню (як у пацієнта)
+  Widget _buildMenuTile({
+    required IconData icon,
+    required String title,
+    String? subtitle,
+    required VoidCallback onTap,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.05),
+            spreadRadius: 1,
+            blurRadius: 5,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: ListTile(
+        onTap: onTap,
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Theme.of(context).primaryColor.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, color: Theme.of(context).primaryColor),
+        ),
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
+        subtitle: subtitle != null ? Text(subtitle, style: const TextStyle(fontSize: 12, color: Colors.grey)) : null,
+        trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
       ),
     );
   }
