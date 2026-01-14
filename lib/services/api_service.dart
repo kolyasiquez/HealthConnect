@@ -39,49 +39,63 @@ class ApiService {
       String name,
       String phoneNumber,
       UserRole role, {
+        // Необов'язкові параметри (потрібні лише для лікаря)
         String? bio,
         String? specialization,
-        String? address, // 🚀 ОНОВЛЕНО: Нове поле адреси
+        String? address,
       }) async {
 
-    String defaultAvatarPath;
-    if (role == UserRole.doctor) {
-      defaultAvatarPath = 'assets/doctor_avatars/default_doctor.png';
-    } else {
-      defaultAvatarPath = 'assets/avatars/default_person.png';
+    // Якщо випадково спробувати зареєструвати адміна через код — викидаємо помилку
+    if (role == UserRole.admin) {
+      throw Exception('Реєстрація адміністраторів через додаток заборонена.');
     }
 
     final String collectionPath = _getCollectionForRole(role);
-
+    Map<String, dynamic> userData;
     String documentRole;
-    if (role == UserRole.doctor) {
-      documentRole = 'pending_doctor';
-    } else if (role == UserRole.patient) {
+
+    // --- 1. ЛОГІКА ДЛЯ ПАЦІЄНТА (Мінімальний набір полів) ---
+    if (role == UserRole.patient) {
       documentRole = 'patient';
-    } else {
-      documentRole = 'admin';
+
+      userData = {
+        'email': email,
+        'name': name,
+        'phoneNumber': phoneNumber,
+        'createdAt': FieldValue.serverTimestamp(),
+        'avatarUrl': 'assets/avatars/default_person.png',
+        'role': documentRole,
+        // Інші поля (bio, specialization, address) сюди НЕ додаються
+      };
     }
 
-    final userData = {
-      'email': email,
-      'name': name,
-      'phoneNumber': phoneNumber,
-      'createdAt': FieldValue.serverTimestamp(),
-      'avatarUrl': defaultAvatarPath,
-      'age': null,
-      'role': documentRole,
-      // 🚀 Дані, специфічні для лікаря:
-      'bio': (role == UserRole.doctor) ? bio : null,
-      'specialization': (role == UserRole.doctor) ? specialization : null,
-      'address': (role == UserRole.doctor) ? address : null, // 👈 Зберігаємо адресу
-      'licenseUrl': null,
-    };
+    // --- 2. ЛОГІКА ДЛЯ ЛІКАРЯ (Розширений набір полів) ---
+    else {
+      // Тут role == UserRole.doctor
+      documentRole = 'pending_doctor'; // Лікар спочатку має статус "очікує"
 
+      userData = {
+        'email': email,
+        'name': name,
+        'phoneNumber': phoneNumber,
+        'createdAt': FieldValue.serverTimestamp(),
+        'avatarUrl': 'assets/doctor_avatars/default_doctor.png',
+        'role': documentRole,
+        // Специфічні поля лікаря:
+        'bio': bio,
+        'specialization': specialization,
+        'address': address,
+      };
+    }
+
+    // --- 3. ЗАПИС У FIRESTORE ---
     final batch = _firestore.batch();
 
+    // Запис у колекцію 'patients' або 'doctors'
     final userDocRef = _firestore.collection(collectionPath).doc(uid);
     batch.set(userDocRef, userData);
 
+    // Запис ролі у 'user_roles' (для швидкої перевірки при вході)
     final roleDocRef = _firestore.collection('user_roles').doc(uid);
     batch.set(roleDocRef, {'role': documentRole});
 
